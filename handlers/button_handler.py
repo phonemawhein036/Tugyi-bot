@@ -21,7 +21,7 @@ def button_handler(update, context):
             )
 
             # Generate QR
-            qr_path = generate_qr(conf_data)
+            qr_path = generate_qr(conf_data, color="#ff6600", bg="white")
 
             query.message.reply_photo(
                 photo=open(qr_path, "rb"),
