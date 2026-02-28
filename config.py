@@ -1,4 +1,5 @@
-import os
-
-TOKEN = os.environ.get("BOT_TOKEN")
+TOKEN = "YOUR_BOT_TOKEN"
 BOT_NAME = "Phoenix Tugyi Warp Config"
+
+ENDPOINT = "162.159.192.10:500"
+DNS = "1.1.1.1"
