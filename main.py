@@ -1,48 +1,46 @@
 import os
-import subprocess
-import qrcode
 from flask import Flask, request
-from telegram import Bot, Update, InputFile
-from telegram.ext import Dispatcher, CommandHandler, ContextTypes
+from telegram import Bot, Update
+from telegram.ext import Updater, CommandHandler, Dispatcher
 
-TOKEN = os.getenv("BOT_TOKEN")
-bot = Bot(token=TOKEN)
+TOKEN = os.environ.get("BOT_TOKEN")
 
 app = Flask(__name__)
-dispatcher = Dispatcher(bot, None, workers=0)
+bot = Bot(token=TOKEN)
 
-# START COMMAND
-async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text("Send /generate to create WGCF key")
+# Telegram Updater (v13 style)
+updater = Updater(TOKEN, use_context=True)
+dispatcher = updater.dispatcher
 
-# GENERATE COMMAND
-async def generate(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    user = update.message.from_user.username or str(update.message.from_user.id)
-    filename = f"{user}.conf"
 
-    # Run wgcf
-    subprocess.run(["wgcf", "register"])
-    subprocess.run(["wgcf", "generate"])
+# ✅ Start command
+def start(update, context):
+    update.message.reply_text("Bot is running successfully 🚀")
 
-    os.rename("wgcf-profile.conf", filename)
-
-    # Send config file
-    await update.message.reply_document(InputFile(filename))
-
-    # Generate QR
-    img = qrcode.make(open(filename).read())
-    img.save("qr.png")
-    await update.message.reply_photo(photo=open("qr.png", "rb"))
 
 dispatcher.add_handler(CommandHandler("start", start))
-dispatcher.add_handler(CommandHandler("generate", generate))
 
+
+# ✅ Webhook route
 @app.route(f"/{TOKEN}", methods=["POST"])
 def webhook():
     update = Update.de_json(request.get_json(force=True), bot)
     dispatcher.process_update(update)
     return "ok"
 
+
+# ✅ Home route (Render needs open port)
 @app.route("/")
 def home():
-    return "Bot running"
+    return "Bot is alive!"
+
+
+if __name__ == "__main__":
+    PORT = int(os.environ.get("PORT", 5000))
+
+    # Set webhook (Render URL automatically)
+    RENDER_EXTERNAL_URL = os.environ.get("RENDER_EXTERNAL_URL")
+    if RENDER_EXTERNAL_URL:
+        bot.set_webhook(url=f"{RENDER_EXTERNAL_URL}/{TOKEN}")
+
+    app.run(host="0.0.0.0", port=PORT)
