@@ -1,49 +1,35 @@
-import os
-from telegram.ext import CallbackQueryHandler
-from services.warp_service import generate_warp_config
+from services.wireguard_service import generate_wireguard_config
 from services.qr_service import generate_qr
 
-def button_handler(update, context):
+def wireguard_key(update, context):
     query = update.callback_query
     query.answer()
 
-    try:
-        if query.data == "generate":
-            query.edit_message_text("⏳ Generating your secure config...")
+    user_id = query.from_user.id
 
-            # Generate config
-            conf_path, conf_data = generate_warp_config(query.from_user.id)
+    # 1️⃣ Generate config text
+    conf_data = generate_wireguard_config(user_id)
 
-            # Send .conf file
-            query.message.reply_document(
-                document=open(conf_path, "rb"),
-                filename="PhoenixTugyiWarp.conf"
-            )
+    # 2️⃣ Save .conf file
+    file_name = f"WG_{user_id}.conf"
+    with open(file_name, "w") as f:
+        f.write(conf_data)
 
-            # Generate QR
-            qr_path = generate_qr(conf_data, color="#ff6600", bg="white")
+    # 3️⃣ Generate QR (Phoenix Orange 🔥)
+    qr_path = generate_qr(conf_data, color="#ff6600", bg="white")
 
-            query.message.reply_photo(
-                photo=open(qr_path, "rb"),
-                caption="*🔥 Phoenix Tugyi Warp Config*\n\n"
-                        "✅ Scan QR to connect securely.",
-                parse_mode="Markdown"
-            )
+    # 4️⃣ Send conf file
+    context.bot.send_document(
+        chat_id=query.message.chat_id,
+        document=open(file_name, "rb"),
+        filename=file_name,
+        caption="⚡ Wireguard Config File"
+    )
 
-            # Cleanup
-            os.remove(conf_path)
-            os.remove(qr_path)
-
-            query.edit_message_text("✅ Config generated successfully 🚀")
-
-        elif query.data == "region":
-            query.edit_message_text("🌍 Region system coming in Phase 3.")
-
-        elif query.data == "account":
-            query.edit_message_text("👤 Account system coming soon.")
-
-    except Exception as e:
-        query.message.reply_text("❌ System error occurred. Please try again.")
-
-def register_buttons(dispatcher):
-    dispatcher.add_handler(CallbackQueryHandler(button_handler))
+    # 5️⃣ Send QR
+    context.bot.send_photo(
+        chat_id=query.message.chat_id,
+        photo=open(qr_path, "rb"),
+        caption="🔥 Phoenix Tugyi Warp QR\n\nScan to connect securely.",
+        parse_mode="Markdown"
+    )
